@@ -77,6 +77,12 @@ void redirect(int fd, char *path, int flag) {   // リダイレクト処理を�
   //        入力の場合 O_RDONLY
   //        出力の場合 O_WRONLY|O_TRUNC|O_CREAT
   //
+  close(fd);
+  fd = open(path, flag, 0644);
+  if (fd < 0) {
+    perror(path);
+    exit(1);
+  }
 }
 
 void externalCom(char *args[]) {                // 外部コマンドを実行する
@@ -86,6 +92,12 @@ void externalCom(char *args[]) {                // 外部コマンドを実行�
     exit(1);                                    //     非常事態，親を終了
   }
   if (pid==0) {                                 //   子プロセスなら
+    if (ifile != NULL) {
+      redirect(0, ifile, O_RDONLY);
+    }
+    if (ofile != NULL) {
+      redirect(1, ofile, O_WRONLY|O_CREAT|O_TRUNC);
+    }
     execvp(args[0], args);                      //     コマンドを実行
     perror(args[0]);
     exit(1);
@@ -130,3 +142,16 @@ int main() {
   return 0;
 }
 
+/*動作確認
+
+% make
+cc -D_GNU_SOURCE -Wall -std=c99 -o myshell myshell.c
+
+% ls > a.txt
+
+% ls > b.txt < a.txt
+
+% a.txt < b.txt
+zsh: command not found: a.txt
+
+*/
